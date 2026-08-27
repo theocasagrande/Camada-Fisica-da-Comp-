@@ -15,7 +15,7 @@ import struct
 
 # Porta serial deste computador.
 # Para descobrir: python -m serial.tools.list_ports
-serialName = "COM3"
+serialName = "COM7"
 
 # Números a enviar. O enunciado pede de 5 a 15 números, cada um no
 # intervalo [-1000 ; +1000] e com 6 casas de precisão.
