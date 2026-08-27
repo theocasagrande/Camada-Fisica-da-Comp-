@@ -153,8 +153,9 @@ def receberArquivos(com, nomes):
         if arq is None:
             continue
 
+        valido = pacote.eopOk and pacote.checksumOk
         seqEsperado = arq["seq"] + 1
-        if pacote.seq == seqEsperado and pacote.eopOk:
+        if pacote.seq == seqEsperado and valido:
             arq["dados"] += pacote.payload
             arq["seq"] = pacote.seq
             arq["total"] = pacote.total
@@ -167,7 +168,7 @@ def receberArquivos(com, nomes):
                 ativos.discard(pacote.fileId)
                 print("  Arquivo '{}' recebido por completo.".format(arq["nome"]))
 
-        elif pacote.seq == arq["seq"] and pacote.eopOk:
+        elif pacote.seq == arq["seq"] and valido:
             # pacote repetido: nosso ACK anterior deve ter se perdido. Não duplica
             # os dados, só confirma de novo para o servidor seguir em frente.
             enviarPacote(com, montarPacote(ACK, pacote.fileId, pacote.seq, pacote.total))
@@ -175,7 +176,12 @@ def receberArquivos(com, nomes):
                 arq["nome"], pacote.seq))
 
         else:
-            motivo = "ordem incorreta" if pacote.seq != seqEsperado else "EOP inválido"
+            if pacote.seq != seqEsperado:
+                motivo = "ordem incorreta"
+            elif not pacote.eopOk:
+                motivo = "EOP inválido"
+            else:
+                motivo = "checksum inválido"
             print("  pacote de '{}' rejeitado ({}); pedindo reenvio do pacote {}...".format(
                 arq["nome"], motivo, seqEsperado))
             enviarPacote(com, montarPacote(NACK, pacote.fileId, seqEsperado, pacote.total))

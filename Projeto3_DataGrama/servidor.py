@@ -41,6 +41,22 @@ def formatarLista(nomes):
     return "{} e {}".format(", ".join(citados[:-1]), citados[-1])
 
 
+def montarMensagemEscolha(escolhidos):
+    """"Arquivo 'x' escolhido, deseja adicionar outro arquivo? (S/N)" ou, com
+    mais de um, "Arquivo 'x' e 'y' escolhidos, deseja adicionar outro
+    arquivo? (S/N)", citando o nome de todos os arquivos já escolhidos até
+    agora (como pede o enunciado). Se a lista de nomes ficar grande demais
+    para caber no payload (100 bytes), cai para uma versão resumida em vez
+    de estourar o limite.
+    """
+    verbo = "escolhido" if len(escolhidos) == 1 else "escolhidos"
+    texto = "Arquivo {} {}, deseja adicionar outro arquivo? (S/N)".format(formatarLista(escolhidos), verbo)
+    if len(texto.encode("utf-8")) <= PAYLOAD_MAX:
+        return texto
+    return "Arquivo '{}' também escolhido ({} arquivos no total). Deseja adicionar outro arquivo? (S/N)".format(
+        escolhidos[-1], len(escolhidos))
+
+
 def atenderCliente(com):
     print("\nAguardando handshake de um cliente... (Ctrl+C para encerrar)")
     pacote = receberPacote(com, None)
@@ -76,15 +92,7 @@ def atenderCliente(com):
         escolhidos.append(nome)
         print("Cliente escolheu '{}'. Escolhidos até agora: {}".format(nome, formatarLista(escolhidos)))
 
-        # a mensagem cita só o arquivo recém-escolhido (+ o total), para o
-        # tamanho do payload não crescer sem limite conforme mais arquivos
-        # vão sendo escolhidos (o payload nunca pode passar de PAYLOAD_MAX).
-        if len(escolhidos) == 1:
-            texto = "Arquivo {} escolhido. Deseja adicionar outro arquivo? (S/N)".format(nome)
-        else:
-            texto = "Arquivo {} também escolhido ({} no total). Deseja adicionar outro arquivo? (S/N)".format(
-                nome, len(escolhidos))
-        enviarPacote(com, montarControle(CONFIRMAR, texto))
+        enviarPacote(com, montarControle(CONFIRMAR, montarMensagemEscolha(escolhidos)))
 
         pacote = receberPacote(com, None)
         if pacote is None:

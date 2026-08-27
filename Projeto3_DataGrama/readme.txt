@@ -98,25 +98,38 @@ o proprio time out de cada pacote e que cuida da retransmissao.
 
 6) O datagrama
 -----------------
-    +----------------------- HEAD (10 bytes) -----------------------+---- payload ----+-- EOP --+
-    | tipo(1) | fileId(1) | seq(2) | total(2) | payloadLen(1) | rsv(3) |  ate 100 bytes  | 4 bytes |
-    +------------------------------------------------------------------+-----------------+---------+
+    +------------------------- HEAD (10 bytes) --------------------------+---- payload ----+-- EOP --+
+    | tipo(1) | fileId(1) | seq(2) | total(2) | payloadLen(1) | checksum(2) | rsv(1) |  ate 100 bytes  | 4 bytes |
+    +------------------------------------------------------------------------------------+-----------------+---------+
 
 tipo identifica a mensagem (handshake, selecao de arquivo, dados,
 ack/nack, pausar/retomar/abortar...); fileId diz a qual arquivo o
 pacote pertence (ou 0xFF para mensagens sem arquivo associado); seq e
 total sao o numero do pacote e o total de pacotes daquele arquivo,
 enviados em todo pacote de dados; payloadLen diz quantos bytes do
-payload sao validos; e o EOP e uma marca fixa de 4 bytes usada para
-conferir que o pacote chegou inteiro.
+payload sao validos; checksum e uma soma de verificacao (Internet
+checksum, 16 bits) calculada sobre o payload, no mesmo espirito do
+campo checksum do cabecalho TCP visto na teoria; e o EOP e uma marca
+fixa de 4 bytes usada para conferir que o pacote chegou inteiro.
 
-Ao receber cada pacote de dados o cliente faz as duas verificacoes
-pedidas: confere que o numero do pacote e exatamente 1 a mais que o
-anterior (ordem correta) e que o EOP esta no lugar certo (chegaram
-todos os bytes). Se estiver tudo certo, confirma com ACK e o servidor
-manda o proximo; se algo estiver errado, pede reenvio com NACK. Um
-pacote repetido (por exemplo, quando o ACK anterior se perde) e
-identificado e reconfirmado sem duplicar os dados já recebidos.
+Ao receber cada pacote de dados o cliente faz tres verificacoes: (1)
+confere que o numero do pacote e exatamente 1 a mais que o anterior
+(ordem correta); (2) que o EOP esta no lugar certo (chegaram todos os
+bytes); e (3) que o checksum recalculado bate com o do cabecalho
+(os bytes do meio nao foram corrompidos). Se tudo estiver certo,
+confirma com ACK e o servidor manda o proximo; se algo estiver errado,
+pede reenvio com NACK. Um pacote repetido (por exemplo, quando o ACK
+anterior se perde) e identificado e reconfirmado sem duplicar os dados
+já recebidos.
+
+Resincronizacao apos desconexao: como o head e lido antes de se saber
+se o resto do pacote vai chegar certo, uma desconexao bem no meio da
+recepcao do payload pode deixar no buffer bytes que nao sao mais o
+inicio de um pacote valido. Nesse caso (corpo do pacote incompleto
+apos o time out, ou EOP que nao bate), o protocolo descarta bytes ate
+achar a proxima marca EOP no fluxo, realinhando a leitura com o inicio
+do proximo pacote — sem isso, a comunicacao poderia nunca mais se
+recuperar sozinha depois de uma desconexao no meio de um pacote.
 
 
 7) Problemas comuns
