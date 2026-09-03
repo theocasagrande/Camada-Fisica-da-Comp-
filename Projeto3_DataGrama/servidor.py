@@ -20,7 +20,7 @@ import time
 
 # Porta serial deste computador.
 # Para descobrir: python -m serial.tools.list_ports
-serialName = "COM3"
+serialName = "COM7"
 
 baseDir = os.path.dirname(os.path.abspath(__file__))
 pastaArquivos = os.path.join(baseDir, "arquivosServidor")
@@ -237,6 +237,8 @@ def main():
         print("Iniciando o servidor")
         com1 = enlace(serialName)
         com1.enable()
+        time.sleep(2)          # deixa o Arduino terminar o reset provocado ao abrir a porta
+        com1.fisica.flush()    # descarta o lixo que chegou na linha durante esse reset
         print("Comunicação aberta em {}".format(serialName))
         com1.rx.clearBuffer()
 

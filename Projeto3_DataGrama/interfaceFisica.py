@@ -12,6 +12,12 @@ import serial
 # importa pacote para conversão binário ascii
 import binascii
 
+# Dígitos hexadecimais ASCII válidos: tudo que o outro lado envia passou por
+# binascii.hexlify, então todo byte legítimo cai nesse conjunto. Qualquer byte
+# fora dele é ruído de linha (reset do Arduino ao abrir a porta, sobras de uma
+# execução anterior, glitch de framing).
+_HEXDIGITS = frozenset(b"0123456789abcdefABCDEF")
+
 #################################
 # Interface com a camada física #
 #################################
@@ -75,19 +81,28 @@ class fisica(object):
         """
         rxBuffer = self.port.read(nBytes)
         rxBufferConcat = self.rxRemain + rxBuffer
-        nValid = (len(rxBufferConcat)//2)*2
-        rxBufferValid = rxBufferConcat[0:nValid]
-        self.rxRemain = rxBufferConcat[nValid:]
+
+        # Descarta qualquer byte que não seja dígito hexadecimal antes de tentar
+        # decodificar. Sem isso, um único byte de lixo (ruído, reset do Arduino,
+        # sobra de execução anterior) fazia o binascii.unhexlify lançar exceção
+        # e o pacote válido que veio grudado nesse lixo era jogado fora junto.
+        limpo = bytes(b for b in rxBufferConcat if b in _HEXDIGITS)
+
+        nValid = (len(limpo)//2)*2
+        rxBufferValid = limpo[0:nValid]
+        self.rxRemain = limpo[nValid:]
         try :
             """ As vezes acontece erros na decodificacao
             fora do ambiente linux, isso tenta corrigir
             em parte esses erros. Melhorar futuramente."""
             "muitas vezes um flush no inicio resolve!"
             rxBufferDecoded = self.decode(rxBufferValid)
-    
-            
-            
-            nRx = len(rxBuffer)
+
+            # nº de bytes já decodificados que entram no buffer da camada de
+            # enlace (o original devolvia len(rxBuffer), que era o tamanho em
+            # hex, ~2x, e ainda descartava bytes quando a porta lia vazio mas
+            # havia sobra pendente em rxRemain).
+            nRx = len(rxBufferDecoded)
             return(rxBufferDecoded, nRx)
         except :
             print("[ERRO] interfaceFisica, read, decode. buffer : {}".format(rxBufferValid))
