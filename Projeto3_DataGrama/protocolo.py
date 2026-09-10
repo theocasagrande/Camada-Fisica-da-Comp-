@@ -159,6 +159,17 @@ def resincronizar(com, limiteBytes=4096):
     while descartados < limiteBytes:
         byte = receberBytes(com, 1, 1)
         if byte is None:
+            # A linha ficou em silencio sem que o EOP aparecesse. Alem do caso
+            # obvio (o fio ainda esta fora), isso acontece quando a desconexao
+            # cortou um byte pela METADE: a camada fisica transmite tudo em
+            # hexadecimal (2 caracteres por byte) e guarda em rxRemain o
+            # caractere impar que sobrou. Enquanto essa meia-sobra estiver la,
+            # todo byte remontado sai deslocado em 4 bits e NENHUM EOP volta a
+            # aparecer - o protocolo nunca mais se recupera sozinho.
+            # Com a linha em silencio, o que estiver pendente so pode ser lixo,
+            # entao descartar e seguro e devolve o alinhamento dos bytes.
+            com.fisica.rxRemain = b""
+            com.rx.clearBuffer()
             return False
         janela = (janela + byte)[-EOP_SIZE:]
         descartados += 1
@@ -182,6 +193,13 @@ def receberPacote(com, timeout):
     total      = int.from_bytes(head[4:6], "big")
     payloadLen = head[6]
     checksumRx = int.from_bytes(head[7:9], "big")
+
+    if payloadLen > PAYLOAD_MAX:
+        # Nenhum pacote legitimo declara mais de 100 bytes de payload, entao
+        # esse head e lixo (bytes deslocados depois de uma desconexao). Sem
+        # essa checagem ficariamos esperando ate 255 bytes que nunca vem.
+        resincronizar(com)
+        return None
 
     resto = receberBytes(com, payloadLen + EOP_SIZE, timeout)
     if resto is None:

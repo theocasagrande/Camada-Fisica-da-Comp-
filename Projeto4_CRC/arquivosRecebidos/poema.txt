@@ -1,0 +1,15 @@
+Camada Física da Computação
+Projeto 3 - Protocolo de Datagramas
+
+Este arquivo de texto é um dos arquivos de teste oferecidos pelo servidor
+para o cliente baixar durante a demonstração do protocolo de transmissão
+por datagramas.
+
+Cada pacote carrega um pedaço deste texto no payload, precedido por um
+cabeçalho fixo (head) com o tipo de mensagem, o identificador do arquivo,
+o número do pacote, o total de pacotes e o tamanho do payload, e seguido
+por uma marca de fim de pacote (EOP).
+
+Se você está lendo este arquivo depois de baixá-lo pela UART, a
+transmissão funcionou: o arquivo chegou inteiro, na ordem certa e sem
+nenhum byte corrompido pelo caminho.
