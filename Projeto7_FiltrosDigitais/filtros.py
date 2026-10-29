@@ -62,8 +62,8 @@ def fatores_q(bandas=BANDAS):
         razao_cima = bandas[i + 1] / f if i < len(bandas) - 1 else bandas[-1] / bandas[-2]
         f_baixo = f / np.sqrt(razao_baixo)
         f_cima = f * np.sqrt(razao_cima)
-        qs.append(f / (f_cima - f_baixo))
-    return qs
+        qs.append((f / (f_cima - f_baixo) ) / 10)
+    return (qs)
 
 
 def projetar_equalizador(ganhos, fs=FS, bandas=BANDAS):

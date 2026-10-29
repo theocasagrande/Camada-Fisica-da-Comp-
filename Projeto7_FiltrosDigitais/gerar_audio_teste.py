@@ -6,6 +6,8 @@
 #                  de bandas muda algo audível.
 #   varredura.wav  senoide que sobe de 20 Hz a 20 kHz em 6 s. Passando pelo
 #                  equalizador, o volume ao longo do tempo segue o Bode.
+#   ruido_rosa.wav ruído com a mesma energia em cada oitava, ou seja, em cada
+#                  banda: qualquer slider muda o timbre, não só o volume.
 #
 #   python gerar_audio_teste.py
 #
@@ -85,9 +87,30 @@ def gerar_varredura(fs=FS):
     return PICO * s * rampa
 
 
+def gerar_ruido_rosa(fs=FS):
+    """Ruído rosa entre 20 Hz e 20 kHz: a mesma energia em cada oitava.
+
+    O ruído branco tem a mesma energia por Hz, então a oitava 10-20 kHz teria mil
+    vezes mais energia que a 10-20 Hz. Dividindo cada componente da FFT por √f, a
+    potência cai com 1/f e cada oitava (cada banda do equalizador) fica igual.
+    """
+    rng = np.random.default_rng(3)
+    n = int(DURACAO * fs)
+    espectro = np.fft.rfft(rng.standard_normal(n))
+    f = np.fft.rfftfreq(n, 1 / fs)
+    dentro = (f >= 20) & (f <= 20000)       # abaixo de 20 Hz só gastaria amplitude
+    espectro[dentro] /= np.sqrt(f[dentro])
+    espectro[~dentro] = 0
+    s = np.fft.irfft(espectro, n)
+    t = np.arange(n) / fs
+    rampa = np.minimum(1, np.minimum(t, DURACAO - t) / 0.02)
+    return PICO * s * rampa / np.max(np.abs(s))
+
+
 def main():
     os.makedirs(PASTA_AUDIOS, exist_ok=True)
-    for nome, sinal in (("teste.wav", gerar_musica()), ("varredura.wav", gerar_varredura())):
+    for nome, sinal in (("teste.wav", gerar_musica()), ("varredura.wav", gerar_varredura()),
+                        ("ruido_rosa.wav", gerar_ruido_rosa())):
         caminho = os.path.join(PASTA_AUDIOS, nome)
         salvar_wav(caminho, sinal, FS)
         print(f"{caminho}  ({len(sinal) / FS:.1f} s, {FS} Hz, 16 bits, mono)")

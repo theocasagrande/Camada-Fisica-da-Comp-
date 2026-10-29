@@ -25,10 +25,11 @@ Projeto7_FiltrosDigitais/
 ├── equalizador.py         <- O PROJETO: interface com 12 sliders, áudio e gráficos
 ├── exercicios.py          <- exercícios 1 a 6 (contas no terminal + gráficos)
 ├── testes.py              <- 8 testes automáticos da matemática (sem som, sem janela)
-├── gerar_audio_teste.py   <- cria audios/teste.wav e audios/varredura.wav
+├── gerar_audio_teste.py   <- cria teste.wav, varredura.wav e ruido_rosa.wav em audios/
 ├── audios/
 │   ├── teste.wav          <- 6 s de "música" sintética (graves, médios e agudos)
-│   └── varredura.wav      <- senoide que sobe de 20 Hz a 20 kHz em 6 s
+│   ├── varredura.wav      <- senoide que sobe de 20 Hz a 20 kHz em 6 s
+│   └── ruido_rosa.wav     <- ruído com a mesma energia em todas as bandas
 ├── filtro_peaking_EQ.ipynb   (notebook do professor, não foi alterado)
 └── filtros_digitais.pdf      (enunciado)
 ```
@@ -185,6 +186,20 @@ mostra o efeito real.
 | Slider sendo arrastado | O Bode atualiza na hora. O áudio é refiltrado 250 ms depois que o slider para. |
 | Gravação do microfone | É tirado o nível DC e o pico é normalizado em −6 dBFS, para sobrar folga para reforços. O áudio é salvo em `audios/gravacao.wav`. |
 
+### 4.5 "Só muda o volume"
+
+Um filtro linear não cria frequências: ele só muda a amplitude (e a fase) de
+cada senoide que já está no sinal. Se o áudio tem energia em poucas bandas,
+mexer nelas sobe ou desce quase o sinal inteiro, e o que se percebe é volume.
+Foi o que aconteceu com a primeira `gravacao.wav`: 90% da energia ficou em
+torno de 400 Hz, quase uma senoide só. O `teste.wav` tem 72% da energia abaixo
+de 180 Hz, que o alto-falante do notebook não reproduz.
+
+Para *ouvir* o equalizador, use o `ruido_rosa.wav`. Ele tem ~10% da energia em
+cada banda, então cada slider muda o timbre ("chiado" mais agudo ou mais
+grave). Para a gravação, fale frases com "s" e "ch" ou toque uma música perto
+do microfone, em vez de um som sustentado.
+
 ---
 
 ## 5. A interface
@@ -264,6 +279,7 @@ Ele abre `audios/teste.wav`. Roteiro:
 | 3 | **Reforço de agudos** | Chimbal mais brilhante; Bode sobe à direita |
 | 4 | **Telefone** | Som "de telefone", fino e sem grave |
 | 5 | Arraste um slider devagar | Bode muda junto; o ponto laranja acompanha o slider |
+| 5b | **Abrir .wav…** → `ruido_rosa.wav`, **Plano**, depois só **4 kHz em +10** (e depois em −10) → ▶ Original → Equalizado | O chiado fica claramente mais "sibilante" (ou mais abafado): muda o timbre, não só o volume |
 | 6 | **Abrir .wav…** → `varredura.wav`, **Plano**, depois só **1 kHz em +10** → ▶ Equalizado | A varredura fica bem mais alta perto de **3,4 s** (é quando ela passa por 1 kHz). O volume ao longo do tempo segue o Bode |
 | 7 | **Gravar 5 s** e fale perto do microfone → Só médios / Reforço de graves | A sua voz equalizada (o enunciado pede um áudio gravado) |
 | 8 | **Imprimir G(z)** | Tabela de coeficientes no terminal |
