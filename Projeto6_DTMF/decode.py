@@ -17,7 +17,8 @@ import sounddevice as sd
 from scipy.io import wavfile
 from scipy.signal import find_peaks
 
-from suaBibSignal import FREQS_ALTAS, FREQS_BAIXAS, TECLA_POR_FREQS, signalMeu
+from suaBibSignal import (FREQS_ALTAS, FREQS_BAIXAS, FREQS_ENUNCIADO,
+                          TECLA_POR_FREQS, signalMeu)
 
 try:
     import peakutils
@@ -82,14 +83,16 @@ def trecho_com_som(dados, fs, quadro=0.02, limiar=0.3):
     """Índices (ini, fim) do trecho com som, descartando silêncio nas pontas.
 
     Divide a gravação em quadros de 20 ms e mantém do primeiro ao último
-    quadro cuja energia (RMS) passa de 30% da maior energia.
+    quadro cuja energia (RMS) passa de 30% da energia de referência.
+    A referência é o percentil 75 das energias, e não a maior: um som curto
+    e forte (palma, estalo) dominaria o máximo e o trecho viraria só ele.
     """
     n = int(quadro * fs)
     nq = len(dados) // n
     if nq < 2:
         return 0, len(dados)
     rms = np.sqrt(np.mean(dados[:nq * n].reshape(nq, n) ** 2, axis=1))
-    ativos = np.nonzero(rms >= limiar * rms.max())[0]
+    ativos = np.nonzero(rms >= limiar * np.percentile(rms, 75))[0]
     return ativos[0] * n, (ativos[-1] + 1) * n
 
 
@@ -122,9 +125,16 @@ def detectar_picos(xf, yf, fmin=F_MIN, fmax=F_MAX, min_picos=MIN_PICOS):
 
 
 def mais_proxima(f, grupo):
-    """Frequência DTMF do grupo mais próxima de f, ou None se longe demais."""
-    alvo = min(grupo, key=lambda g: abs(g - f))
-    return alvo if abs(alvo - f) <= TOLERANCIA * alvo else None
+    """Frequência DTMF do grupo mais próxima de f, ou None se longe demais.
+
+    Também aceita 679 e 825 Hz (tabela do enunciado), mas sempre devolve o
+    valor do padrão (697 e 852 Hz), que é o que está em TECLA_POR_FREQS.
+    """
+    candidatas = list(grupo) + [e for e, p in FREQS_ENUNCIADO.items() if p in grupo]
+    alvo = min(candidatas, key=lambda g: abs(g - f))
+    if abs(alvo - f) > TOLERANCIA * alvo:
+        return None
+    return FREQS_ENUNCIADO.get(alvo, alvo)
 
 
 def identificar_tecla(freqs, mags, piso):
@@ -162,6 +172,12 @@ def analisar(dados, fs):
 
 
 def imprimir(r):
+    if len(r["freqs"]) == 0:    # gravação toda zerada (ex.: microfone bloqueado)
+        print("\nNenhum pico encontrado: a gravação está em silêncio. "
+              "Verifique se o microfone está ligado e com permissão.")
+        print("\n==> Nenhuma tecla DTMF reconhecida")
+        return
+
     print(f"\nPicos encontrados (sensibilidade thres={r['thres']}), "
           "do mais forte para o mais fraco:")
     ref = r["mags"][0]

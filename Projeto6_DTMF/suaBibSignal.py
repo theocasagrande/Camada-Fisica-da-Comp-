@@ -40,6 +40,10 @@ TABELA_DTMF = {
 # (frequência baixa, frequência alta) -> tecla
 TECLA_POR_FREQS = {freqs: tecla for tecla, freqs in TABELA_DTMF.items()}
 
+# frequência da tabela do enunciado -> frequência do padrão. O emissor usa só o
+# padrão, mas o receptor aceita as duas para reconhecer quem seguiu o enunciado.
+FREQS_ENUNCIADO = {679: 697, 825: 852}
+
 
 class signalMeu:
 
