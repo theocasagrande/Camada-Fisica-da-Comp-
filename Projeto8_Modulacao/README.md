@@ -93,6 +93,11 @@ no modo "headset" amostra a 8–16 kHz e estraga o sinal); volume do sistema alt
 receber nada, rode `/nivel` no receptor durante o envio; se o Windows tiver "supressão de
 ruído"/"melhorias de áudio" no microfone, desligue (ela pode tratar o tom como ruído).
 
+**Corrigido em 16/11 (teste pelo ar):** o Windows cortava os últimos ~210 ms do som tocado, e o fim
+do CRC se perdia (texto certo, "CRC NÃO CONFERE"). O chat agora toca 0,5 s de silêncio depois do
+quadro (`SOBRA_NO_FIM` em `chat_psk.py`). Testado num notebook só, com `receptor` e `emissor` em dois
+terminais: duas frases com acento chegaram com CRC ok e SNR de 16 dB.
+
 ## Arquivos da parte 2
 
 | arquivo | o que faz |

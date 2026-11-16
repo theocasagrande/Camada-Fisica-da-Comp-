@@ -45,6 +45,8 @@ PASTA_AUDIOS = os.path.join(PASTA, "audios_psk")
 PASTA_GRAFICOS = os.path.join(PASTA, "graficos_psk")
 BLOCO = 0.1                 # s de microfone por pedaço entregue ao receptor
 SILENCIO_DEPOIS = 0.3       # s esperando o eco da sala acabar antes de voltar a escutar
+SOBRA_NO_FIM = 0.5          # s de silêncio tocados depois do quadro: o Windows corta o fim do som
+                            # (medido: ~210 ms a menos, levando o fim do CRC); o corte cai no silêncio
 
 
 def num(x, casas=2):
@@ -160,7 +162,7 @@ class Chat:
         print(f"  ▶ tocando {num(len(audio) / FS)} s...", end="", flush=True)
         self.transmitindo = True
         try:
-            sd.play(audio, FS)
+            sd.play(np.concatenate([audio, np.zeros(int(SOBRA_NO_FIM * FS))]), FS)
             sd.wait()
             time.sleep(SILENCIO_DEPOIS)
         finally:

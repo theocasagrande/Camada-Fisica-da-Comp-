@@ -389,13 +389,21 @@ class Receptor:
                 self._descartar(len(self.base) - guardar)
 
 
-def snr_simbolos(v):
-    """SNR medida nos bits: (distância até o zero)² / (espalhamento em volta do ponto)²."""
+def snr_simbolos(v, vizinhos=15):
+    """SNR medida nos bits: (distância até o zero)² / (espalhamento em volta do ponto)².
+
+    Cada bit é dividido antes pela amplitude média dos ~15 bits em volta dele: o
+    microfone do Windows muda o volume sozinho no meio da mensagem (controle
+    automático de ganho), e isso não é ruído - a decisão só olha o sinal de ±.
+    """
     d = np.sign(v.real)
     d[d == 0] = 1
-    a = np.mean(v.real * d)
-    ruido = v * d - a
-    return float(10 * np.log10(a ** 2 / max(np.mean(np.abs(ruido) ** 2), 1e-30)))
+    local = np.convolve(np.abs(v), np.ones(vizinhos) / vizinhos, mode="same")
+    local[:vizinhos // 2] = local[vizinhos // 2]                # bordas: sem média incompleta
+    local[-(vizinhos // 2):] = local[-(vizinhos // 2) - 1]
+    u = v * d / np.maximum(local, 1e-30)
+    ruido = u - np.mean(u.real)
+    return float(10 * np.log10(np.mean(u.real) ** 2 / max(np.mean(np.abs(ruido) ** 2), 1e-30)))
 
 
 def receber(audio, fc=FC, taxa=TAXA, fs=FS, bloco=4410):
